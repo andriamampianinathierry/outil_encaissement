@@ -1316,8 +1316,23 @@ async function gsCall(params) {
   const url = scriptUrl + '?' + Object.entries({...params, ts: Date.now()})
     .map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(typeof v === 'object' ? JSON.stringify(v) : v))
     .join('&');
-  const res = await fetch(url);
-  return await res.json();
+  const res = await fetch(url, {
+    redirect: 'follow',
+    method: 'GET',
+  });
+  const text = await res.text();
+  return JSON.parse(text);
+}
+
+async function gsCallPost(params) {
+  const res = await fetch(scriptUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' }, // pas application/json pour éviter preflight
+    body: JSON.stringify(params),
+    redirect: 'follow',
+  });
+  const text = await res.text();
+  return JSON.parse(text);
 }
 
 // ─── SYNC SHEETS ──────────────────────────────────────────────────────────────
@@ -1327,7 +1342,7 @@ async function syncToSheets() {
   const rows   = entries.map(e=>[e.date, e.nom, e.tel, e.motif, e.runmay, e.montant.toFixed(2), e.agent]);
   toast('Synchronisation en cours…','info');
   try {
-    const json = await gsCall({ action: 'writeHistorique', data: [header, ...rows] });
+    const json = await gsCall({ action: 'gsCallPost', data: [header, ...rows] });
     if (json.success) {
       toast(`${json.written} lignes envoyées ✓`,'ok');
     } else {
@@ -1342,7 +1357,7 @@ async function exportConfigToSheets() {
   if (!scriptUrl) { toast('URL du script Apps non configurée.','err'); return; }
   toast('Export des utilisateurs vers Config…', 'info');
   try {
-    const json = await gsCall({ action: 'writeConfig', users });
+    const json = await gsCall({ action: 'gsCallPost', users });
     if (json.success) {
       toast(`${json.written} utilisateurs exportés ✓`, 'ok');
       showStatus('status-users', `✓ ${json.written} utilisateurs synchronisés vers Google Sheets.`, 'ok');
