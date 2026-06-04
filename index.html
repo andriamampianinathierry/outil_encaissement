@@ -950,8 +950,7 @@ function stopAutoSync() {
 
 async function silentLoadConfig() {
   try {
-    const res  = await fetch(scriptUrl + '?action=getConfig');
-    const json = await res.json();
+    const json = await gsCall({ action: 'getConfig' });
     if (json.success && Array.isArray(json.users) && json.users.length > 0) {
       json.users.forEach(nu => {
         const existing = users.find(u => u.login === nu.login);
@@ -1312,14 +1311,36 @@ function renderCredentials() {
 
 
 // ─── FETCH HELPERS ────────────────────────────────────────────────────────────
-// GET : uniquement pour les lectures (getConfig, getHistorique)
-async function gsCall(params) {
-  const url = scriptUrl + '?' + Object.entries({...params, ts: Date.now()})
-    .map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(typeof v === 'object' ? JSON.stringify(v) : v))
-    .join('&');
-  const res = await fetch(url, { redirect: 'follow' });
-  const text = await res.text();
-  return JSON.parse(text);
+// GET : JSONP pour contourner la redirection 302 CORS de Google Apps Script
+// (fetch + redirect:'follow' fonctionne en local mais est bloqué sur GitHub Pages)
+function gsCall(params) {
+  return new Promise((resolve, reject) => {
+    const cbName = '__cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const timer = setTimeout(() => {
+      gsCleanup(cbName);
+      reject(new Error('Timeout'));
+    }, 12000);
+
+    window[cbName] = (data) => {
+      clearTimeout(timer);
+      gsCleanup(cbName);
+      if (data && data.error) reject(new Error(data.error));
+      else resolve(data);
+    };
+
+    const qs = Object.entries({ ...params, callback: cbName, ts: Date.now() })
+      .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(typeof v === 'object' ? JSON.stringify(v) : v))
+      .join('&');
+
+    const s = document.createElement('script');
+    s.src = scriptUrl + '?' + qs;
+    s.onerror = () => { clearTimeout(timer); gsCleanup(cbName); reject(new Error('Réseau')); };
+    document.head.appendChild(s);
+  });
+}
+function gsCleanup(cb) {
+  delete window[cb];
+  document.querySelectorAll('script[src*="script.google.com"]').forEach(e => e.remove());
 }
 
 // POST : pour toutes les écritures (addEntry, writeHistorique, writeConfig)
