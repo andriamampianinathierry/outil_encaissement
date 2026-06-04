@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outil Encaissement 2026 — v16</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --surface2: #f7f8fa;
+    --border: #e2e5ec;
+    --border2: #d0d4de;
+    --gold: #c9a84c;
+    --gold2: #e8c96a;
+    --gold-light: rgba(201,168,76,0.12);
+    --gold-border: rgba(201,168,76,0.35);
+    --accent: #3a6fd8;
+    --danger: #d64545;
+    --green: #2e8b57;
+    --orange: #c97c2a;
+    --text: #1a1e2e;
+    --text2: #6b7280;
+    --text3: #9ca3af;
+    --shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.06);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── LOGIN ── */
+  #login-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #e8eaf2 0%, #f0f2f5 50%, #ede9df 100%);
+  }
+  .login-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 52px 44px; width: 400px;
+    box-shadow: var(--shadow-lg); position: relative; overflow: hidden;
+  }
+  .login-box::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--gold), var(--gold2), var(--gold));
+  }
+  .login-logo { text-align: center; margin-bottom: 36px; }
+  .login-logo .brand-label { font-size: 11px; color: var(--gold); letter-spacing: 4px; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 10px; }
+  .login-logo h1 { font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 700; color: var(--text); }
+  .login-logo h1 em { color: var(--gold); font-style: normal; }
+  .login-logo .sub { font-size: 13px; color: var(--text2); margin-top: 6px; }
+  .field { margin-bottom: 20px; }
+  .field label { display: block; font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }
+  .field input, .field select {
+    width: 100%; padding: 12px 16px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
+  .btn-primary {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--gold), var(--gold2));
+    border: none; border-radius: 10px; color: #fff;
+    font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .login-err { color: var(--danger); font-size: 13px; margin-top: 12px; text-align: center; display: none; }
+
+  /* ── APP ── */
+  #app { display: none; }
+  .topbar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 32px; height: 64px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 28px; }
+  .logo-sm { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: var(--text); }
+  .logo-sm em { color: var(--gold); font-style: normal; }
+  .logo-sm .year-tag { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); margin-left: 6px; vertical-align: middle; }
+  .nav-tabs { display: flex; gap: 4px; }
+  .nav-tab {
+    padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500;
+    cursor: pointer; color: var(--text2); border: none; background: none;
+    font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+  }
+  .nav-tab:hover { background: var(--surface2); color: var(--text); }
+  .nav-tab.active { background: var(--gold-light); color: var(--gold); border: 1px solid var(--gold-border); font-weight: 600; }
+  .nav-tab.supervisor-tab { display: none; }
+  .nav-tab.admin-tab { display: none; }
+  .topbar-right { display: flex; align-items: center; gap: 14px; }
+  .user-badge { font-size: 13px; color: var(--text2); }
+  .user-badge strong { color: var(--text); }
+  .role-chip { font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px; }
+  .role-admin { background: linear-gradient(135deg,rgba(201,168,76,0.2),rgba(232,201,106,0.2)); color: #8a6a1a; border: 1px solid var(--gold-border); }
+  .role-supervisor { background: rgba(58,111,216,0.1); color: var(--accent); border: 1px solid rgba(58,111,216,0.25); }
+  .role-agent { background: rgba(46,139,87,0.1); color: var(--green); border: 1px solid rgba(46,139,87,0.25); }
+  .btn-logout { padding: 8px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text2); font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+  .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* ── CONTENT ── */
+  .content { padding: 32px; max-width: 1400px; margin: 0 auto; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── STATS ── */
+  .stats-row { display: flex; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+  .stat-card {
+    flex: 1; min-width: 160px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 14px; padding: 22px 26px;
+    box-shadow: var(--shadow); position: relative; overflow: hidden;
+  }
+  .stat-card.gold-bar::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--gold), var(--gold2)); }
+  .stat-card .label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px; font-weight: 600; }
+  .stat-card .value { font-size: 28px; font-weight: 700; font-family: 'DM Mono', monospace; }
+  .stat-card .value.gold { color: var(--gold); }
+  .stat-card .value.green { color: var(--green); }
+  .stat-card .value.orange { color: var(--orange); }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px 20px; margin-bottom: 20px;
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    box-shadow: var(--shadow);
+  }
+  .toolbar input, .toolbar select {
+    padding: 9px 14px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-family: 'DM Sans', sans-serif;
+    font-size: 14px; outline: none; transition: border-color 0.2s;
+  }
+  .toolbar input:focus, .toolbar select:focus { border-color: var(--gold); }
+  .toolbar input { width: 240px; }
+  .btn-add { padding: 9px 18px; background: linear-gradient(135deg, var(--gold), var(--gold2)); border: none; border-radius: 8px; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; margin-left: auto; }
+  .btn-add:hover { opacity: 0.88; }
+  .btn-export { padding: 9px 18px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text2); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: all 0.15s; }
+  .btn-export:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-light); }
+  .btn-sheets { padding: 9px 18px; background: rgba(46,139,87,0.08); border: 1px solid rgba(46,139,87,0.25); border-radius: 8px; color: var(--green); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: all 0.15s; font-weight: 500; }
+  .btn-sheets:hover { background: rgba(46,139,87,0.15); }
+
+  /* ── TABLE ── */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { background: #fdf8ec; padding: 14px 16px; text-align: left; font-size: 11px; font-weight: 700; color: #8a6a1a; text-transform: uppercase; letter-spacing: 1.5px; border-bottom: 2px solid var(--gold-border); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #fafbfc; }
+  tbody td { padding: 13px 16px; font-size: 14px; }
+  .chip { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .chip-may { background: rgba(46,139,87,0.1); color: var(--green); border: 1px solid rgba(46,139,87,0.25); }
+  .chip-run { background: rgba(201,124,42,0.1); color: var(--orange); border: 1px solid rgba(201,124,42,0.25); }
+  .chip-motif { background: var(--gold-light); color: #8a6a1a; border: 1px solid var(--gold-border); font-size: 11px; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .montant { font-family: 'DM Mono', monospace; font-weight: 600; color: var(--green); }
+  .date-cell { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--text2); }
+  .agent-cell { font-size: 12px; color: var(--text2); font-weight: 500; }
+  .btn-del { padding: 4px 10px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text3); cursor: pointer; font-size: 12px; transition: all 0.15s; }
+  .btn-del:hover { border-color: var(--danger); color: var(--danger); }
+  .empty-row td { text-align: center; color: var(--text2); padding: 48px; font-size: 14px; }
+
+  /* ── MODAL ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px; width: 500px; max-width: 95vw; box-shadow: var(--shadow-lg); position: relative; overflow: hidden; }
+  .modal::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--gold), var(--gold2)); }
+  .modal h2 { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; margin-bottom: 24px; color: var(--text); }
+  .modal .field { margin-bottom: 16px; }
+  .modal .field label { display: block; font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px; }
+  .modal .field input, .modal .field select { width: 100%; padding: 11px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s; }
+  .modal .field input:focus, .modal .field select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.12); }
+  .modal-actions { display: flex; gap: 12px; margin-top: 28px; justify-content: flex-end; }
+  .btn-cancel { padding: 11px 22px; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; color: var(--text2); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; }
+  .btn-save { padding: 11px 22px; background: linear-gradient(135deg, var(--gold), var(--gold2)); border: none; border-radius: 9px; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+  /* ── USERS PAGE ── */
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .section-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; color: var(--text); }
+  .pass-mask { font-family: 'DM Mono', monospace; letter-spacing: 2px; color: var(--text3); }
+  .btn-sm { padding: 5px 12px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; border: 1px solid transparent; transition: all 0.15s; }
+  .btn-edit { background: var(--gold-light); color: var(--gold); border-color: var(--gold-border); }
+  .btn-edit:hover { background: rgba(201,168,76,0.2); }
+  .btn-remove { background: rgba(214,69,69,0.08); color: var(--danger); border-color: rgba(214,69,69,0.2); }
+  .btn-remove:hover { background: rgba(214,69,69,0.15); }
+
+  /* ── CONFIG PANEL ── */
+  .config-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 28px 32px; margin-bottom: 24px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+  .config-panel::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(180deg, var(--gold), var(--gold2)); }
+  .config-panel h3 { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; margin-bottom: 18px; color: var(--text); }
+  .config-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .config-row .field { flex: 1; min-width: 280px; margin-bottom: 0; }
+  .btn-config { padding: 11px 20px; background: linear-gradient(135deg, var(--gold), var(--gold2)); border: none; border-radius: 9px; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .btn-config:hover { opacity: 0.88; }
+  .btn-config.green { background: linear-gradient(135deg, #2e8b57, #3aad70); }
+  .sync-note { font-size: 12px; color: var(--text3); margin-top: 10px; line-height: 1.6; }
+  .status-msg { font-size: 13px; margin-top: 12px; padding: 10px 14px; border-radius: 8px; display: none; }
+  .status-msg.ok  { background: rgba(46,139,87,0.1); color: var(--green); border: 1px solid rgba(46,139,87,0.2); }
+  .status-msg.err { background: rgba(214,69,69,0.08); color: var(--danger); border: 1px solid rgba(214,69,69,0.15); }
+  .status-msg.info { background: var(--gold-light); color: #8a6a1a; border: 1px solid var(--gold-border); }
+
+
+
+  /* ── TOGGLE BUTTONS RUN/MAY ── */
+  .toggle-btn {
+    flex: 1; padding: 11px; border-radius: 9px; font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 600; cursor: pointer; border: 2px solid var(--border);
+    background: var(--surface2); color: var(--text2); transition: all 0.18s;
+  }
+  .toggle-btn.active-may { background: rgba(46,139,87,0.12); color: var(--green); border-color: rgba(46,139,87,0.4); }
+  .toggle-btn.active-run { background: rgba(201,124,42,0.12); color: var(--orange); border-color: rgba(201,124,42,0.4); }
+  #toast { position: fixed; bottom: 28px; right: 28px; z-index: 999; background: var(--text); color: #fff; padding: 12px 22px; border-radius: 10px; font-size: 14px; box-shadow: var(--shadow-lg); opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+  #toast.show { opacity: 1; }
+  #toast.ok  { background: var(--green); }
+  #toast.err { background: var(--danger); }
+  #toast.info { background: var(--gold); }
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.4; transform: scale(1.3); }
+  }
+
+
+
+  /* toolbar extra controls */
+  .toolbar-separator { width: 1px; height: 32px; background: var(--border); flex-shrink: 0; }
+  .toolbar input[type="date"] { width: 150px; }
+  .filter-label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  .btn-reset-filters { padding: 9px 14px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text3); font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .btn-reset-filters:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* ── FILTERS BAR 3D (supervisor) ── */
+  .filters-bar {
+    background: linear-gradient(145deg, #ffffff 0%, #f4f6fa 100%);
+    border: 1px solid #d8dce8;
+    border-radius: 18px;
+    padding: 18px 24px;
+    margin-bottom: 18px;
+    display: none;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    box-shadow:
+      0 2px 0 #c8cdd8,
+      0 4px 0 #b8bece,
+      0 6px 12px rgba(0,0,0,0.10),
+      inset 0 1px 0 rgba(255,255,255,0.9);
+    position: relative;
+  }
+  .filters-bar.visible { display: flex; }
+  .filters-bar::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--gold2), var(--gold));
+    border-radius: 18px 18px 0 0;
+    opacity: 0.7;
+  }
+  .filters-bar .filter-label {
+    font-size: 10px; font-weight: 800; color: var(--gold);
+    text-transform: uppercase; letter-spacing: 2px; white-space: nowrap;
+    background: var(--gold-light); padding: 5px 10px; border-radius: 20px;
+    border: 1px solid var(--gold-border);
+  }
+  .filters-bar select, .filters-bar input[type="date"] {
+    padding: 9px 13px;
+    background: linear-gradient(145deg, #ffffff, #f0f2f7);
+    border: 1px solid #d0d5e0;
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+    box-shadow:
+      0 2px 0 #b8bece,
+      0 3px 6px rgba(0,0,0,0.08),
+      inset 0 1px 0 rgba(255,255,255,0.95);
+    transition: all 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .filters-bar select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239ca3af' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+  }
+  .filters-bar select:focus, .filters-bar input[type="date"]:focus {
+    border-color: var(--gold);
+    box-shadow: 0 2px 0 #a07830, 0 3px 8px rgba(201,168,76,0.18), inset 0 1px 0 rgba(255,255,255,0.95);
+    transform: translateY(-1px);
+  }
+  .filters-bar select:hover, .filters-bar input[type="date"]:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 0 #b0b6c6, 0 5px 10px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.95);
+  }
+  .filters-bar .btn-reset-filters {
+    background: linear-gradient(145deg, #fff5f5, #ffeaea);
+    border: 1px solid #f0c0c0;
+    color: var(--danger);
+    border-radius: 10px;
+    box-shadow: 0 2px 0 #d8a0a0, 0 3px 6px rgba(214,69,69,0.10), inset 0 1px 0 rgba(255,255,255,0.9);
+    transition: all 0.15s;
+  }
+  .filters-bar .btn-reset-filters:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 0 #c89090, 0 5px 10px rgba(214,69,69,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
+  .filters-bar .btn-reset-filters:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 0 #c89090, inset 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .filter-sep { width: 1px; height: 28px; background: linear-gradient(180deg, transparent, #d0d5e0, transparent); flex-shrink: 0; }
+
+  /* Bouton Supprimer l'historique */
+  .btn-clear-history {
+    padding: 9px 16px;
+    background: linear-gradient(145deg, #fff5f5, #ffeaea);
+    border: 1px solid #f0c0c0;
+    border-radius: 10px;
+    color: var(--danger);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 0 #d8a0a0, 0 3px 6px rgba(214,69,69,0.10), inset 0 1px 0 rgba(255,255,255,0.9);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-clear-history:hover { transform: translateY(-1px); box-shadow: 0 3px 0 #c89090, 0 5px 10px rgba(214,69,69,0.15), inset 0 1px 0 rgba(255,255,255,0.9); }
+  .btn-clear-history:active { transform: translateY(1px); box-shadow: 0 1px 0 #c89090; }
+
+  /* ── CHART DAILY ── */
+  .chart-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px 28px; margin-bottom: 20px;
+    box-shadow: var(--shadow); display: none; overflow: hidden;
+  }
+  .chart-panel.visible { display: block; }
+  .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 12px; }
+  .chart-panel h3 { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 700; color: var(--text); }
+  .chart-tabs { display: flex; gap: 4px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
+  .chart-tab { padding: 5px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; background: none; color: var(--text2); font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+  .chart-tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .chart-canvas-wrap { position: relative; width: 100%; overflow-x: auto; }
+  .chart-svg-area { width: 100%; min-width: 400px; }
+  .chart-legend { display: flex; gap: 20px; margin-top: 16px; flex-wrap: wrap; }
+  .chart-legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+  /* ── CONFIG PANEL (admin) ── */
+  .config-guide { border: 1px solid rgba(58,111,216,0.25); border-left: 4px solid var(--accent); border-radius: 12px; padding: 24px 28px; margin-bottom: 24px; background: rgba(58,111,216,0.03); }
+  .config-guide h3 { font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 16px; }
+  .config-guide ol { padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .config-guide li { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; color: var(--text); }
+  .config-guide .step-num { width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .config-guide code { background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-family: 'DM Mono', monospace; font-size: 13px; }
+  .config-field-panel { border: 1px solid var(--gold-border); border-left: 4px solid var(--gold); border-radius: 12px; padding: 24px 28px; margin-bottom: 20px; background: var(--gold-light); }
+  .config-field-panel h3 { font-size: 15px; font-weight: 700; color: #7a5c10; margin-bottom: 6px; }
+  .config-field-label { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; margin-top: 16px; }
+  .config-field-row { display: flex; gap: 10px; align-items: center; }
+  .config-field-row input { flex: 1; padding: 11px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; outline: none; transition: border-color 0.2s; }
+  .config-field-row input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.12); }
+  .btn-open-link { padding: 10px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; color: var(--text2); font-size: 13px; cursor: pointer; white-space: nowrap; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
+  .btn-open-link:hover { border-color: var(--accent); color: var(--accent); }
+  .config-note { font-size: 12px; color: var(--text3); margin-top: 8px; line-height: 1.6; }
+  .config-note strong { color: var(--orange); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <span class="brand-label">Outil de suivi · 2026</span>
+      <h1>Encaisse<em>ment</em></h1>
+      <div class="sub">Accès sécurisé à votre espace</div>
+    </div>
+    <div class="field"><label>Identifiant</label><input type="text" id="inp-user" placeholder="Votre identifiant" autocomplete="username"></div>
+    <div class="field"><label>Mot de passe</label><input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="btn-primary" id="btn-login" onclick="doLogin()">Se connecter</button>
+    <div class="login-err" id="login-err">Identifiant ou mot de passe incorrect.</div>
+    <div id="login-info" style="font-size:12px;color:var(--text3);text-align:center;margin-top:10px;display:none;">Vérification en cours…</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="logo-sm">Encaisse<em>ment</em><span class="year-tag">2026</span></span>
+      <div class="nav-tabs">
+        <button class="nav-tab active" onclick="showPage('historique')">📋 Historique</button>
+        <button class="nav-tab supervisor-tab" id="tab-users"  onclick="showPage('users')">👥 Utilisateurs</button>
+        <button class="nav-tab admin-tab" id="tab-config" onclick="showPage('config')">⚙️ Configuration</button>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div id="sync-indicator" style="display:none;align-items:center;gap:6px;font-size:12px;color:var(--text3);">
+        <span id="sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--text3);display:inline-block;"></span>
+        <span id="sync-label">—</span>
+      </div>
+      <button id="btn-refresh-hist" onclick="syncHistoriqueFromSheets(true)" title="Synchroniser l'historique maintenant" style="display:none;padding:6px 14px;background:rgba(58,111,216,0.08);border:1px solid rgba(58,111,216,0.25);border-radius:8px;color:var(--accent);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;">↻ Rafraîchir</button>
+      <span class="user-badge">Connecté : <strong id="disp-user"></strong></span>
+      <span class="role-chip" id="disp-role"></span>
+      <button class="btn-logout" onclick="doLogout()">Déconnexion</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- HISTORIQUE -->
+    <div class="page active" id="page-historique">
+      <div class="stats-row" id="stats-row"></div>
+
+      <!-- FILTERS BAR (superviseur/admin) -->
+      <div class="filters-bar" id="filters-bar">
+        <span class="filter-label">🎛 Filtres</span>
+
+        <select id="filter-month" onchange="applyFilters()" title="Filtrer par mois">
+          <option value="">📅 Mois — Tous</option>
+          <option value="01">Janvier</option><option value="02">Février</option>
+          <option value="03">Mars</option><option value="04">Avril</option>
+          <option value="05">Mai</option><option value="06">Juin</option>
+          <option value="07">Juillet</option><option value="08">Août</option>
+          <option value="09">Septembre</option><option value="10">Octobre</option>
+          <option value="11">Novembre</option><option value="12">Décembre</option>
+        </select>
+
+        <input type="date" id="filter-date-from" onchange="applyFilters()" title="Date début" style="width:148px;">
+        <span style="font-size:12px;color:var(--text3);flex-shrink:0;">→</span>
+        <input type="date" id="filter-date-to" onchange="applyFilters()" title="Date fin" style="width:148px;">
+
+        <div class="filter-sep"></div>
+
+        <select id="filter-agent" onchange="applyFilters()">
+          <option value="">👤 Agent — Tous</option>
+        </select>
+
+        <select id="filter-runmay" onchange="applyFilters()">
+          <option value="">RUN/MAY — Tous</option>
+          <option value="OUI MAY">OUI MAY</option>
+          <option value="OUI RUN">OUI RUN</option>
+        </select>
+
+        <select id="filter-motif" onchange="applyFilters()">
+          <option value="">Motif — Tous</option>
+          <option value="Encaissement suite impayé">Encaissement suite impayé</option>
+          <option value="Encaissement normal">Encaissement normal</option>
+          <option value="Encaissement pour déblocage seuil">Encaissement pour déblocage seuil</option>
+          <option value="Encaissement pour paiement en avance">Encaissement pour paiement en avance</option>
+          <option value="Remboursement">Remboursement</option>
+          <option value="Autre">Autre</option>
+        </select>
+
+        <div class="filter-sep"></div>
+
+        <button class="btn-reset-filters" onclick="resetFilters()">✕ Réinitialiser</button>
+        <button class="btn-clear-history" onclick="clearLocalHistory()">🗑 Supprimer l'historique</button>
+      </div>
+
+      <!-- GRAPHIQUE (superviseur/admin) -->
+      <div class="chart-panel" id="chart-panel">
+        <div class="chart-header">
+          <h3>📊 Évolution des encaissements</h3>
+          <div class="chart-tabs">
+            <button class="chart-tab active" id="tab-daily"   onclick="setChartMode('daily')">Journalier</button>
+            <button class="chart-tab"         id="tab-monthly" onclick="setChartMode('monthly')">Mensuel</button>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap">
+          <svg class="chart-svg-area" id="chart-svg" height="200" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+        <div class="chart-legend">
+          <div class="chart-legend-item"><div class="legend-dot" style="background:#2e8b57"></div> OUI MAY</div>
+          <div class="chart-legend-item"><div class="legend-dot" style="background:#c97c2a"></div> OUI RUN</div>
+        </div>
+      </div>
+
+      <div class="toolbar" style="flex-wrap:wrap;gap:8px;">
+        <!-- Recherche -->
+        <input type="text" id="search-input" placeholder="🔍 Rechercher client, téléphone…" oninput="applyFilters()" style="min-width:200px;">
+
+        <!-- Filtres supplémentaires pour agents uniquement -->
+        <div id="agent-filters" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div class="toolbar-separator"></div>
+          <select id="filter-runmay-agent" onchange="applyFilters()">
+            <option value="">RUN/MAY — Tous</option>
+            <option value="OUI MAY">OUI MAY</option>
+            <option value="OUI RUN">OUI RUN</option>
+          </select>
+          <select id="filter-motif-agent" onchange="applyFilters()">
+            <option value="">Motif — Tous</option>
+            <option value="Encaissement suite impayé">Encaissement suite impayé</option>
+            <option value="Encaissement normal">Encaissement normal</option>
+            <option value="Encaissement pour déblocage seuil">Encaissement pour déblocage seuil</option>
+            <option value="Encaissement pour paiement en avance">Encaissement pour paiement en avance</option>
+            <option value="Remboursement">Remboursement</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </div>
+
+        <div class="toolbar-separator"></div>
+
+        <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+        <button class="btn-sheets" onclick="syncToSheets()">↑ Sync Google Sheets</button>
+        <button class="btn-add" onclick="openAddModal()">+ Nouvelle entrée</button>
+      </div>
+
+      <!-- GRAPHIQUES (superviseur/admin uniquement) -->
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Date</th><th>Nom et Prénom du Client</th><th>Téléphone</th>
+            <th>Motif</th><th>RUN/MAY</th><th>Montant</th><th>Agent</th><th></th>
+          </tr></thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- UTILISATEURS -->
+    <div class="page" id="page-users">
+      <div class="page-header">
+        <span class="section-title">👥 Gestion des utilisateurs</span>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn-sheets" onclick="loadFromConfig()">↓ Importer depuis Sheets</button>
+          <button class="btn-sheets" style="background:rgba(58,111,216,0.08);border-color:rgba(58,111,216,0.25);color:var(--accent);" onclick="exportConfigToSheets()">↑ Exporter vers Sheets</button>
+          <button class="btn-add" onclick="openUserModal()">+ Nouvel utilisateur</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Prénom / Nom</th><th>Identifiant</th><th>Mot de passe</th>
+            <th>Rôle</th><th>Créé le</th><th style="text-align:right">Actions</th>
+          </tr></thead>
+          <tbody id="users-body"></tbody>
+        </table>
+      </div>
+      <div id="status-users" class="status-msg" style="margin-top:14px;"></div>
+    </div>
+
+    <!-- CONFIGURATION (admin) -->
+    <div class="page" id="page-config">
+      <div class="page-header" style="margin-bottom:28px;">
+        <span class="section-title">⚙️ Configuration Google Sheets</span>
+      </div>
+
+      <!-- Guide déploiement -->
+      <div class="config-guide">
+        <h3>📄 Guide de déploiement Apps Script</h3>
+        <ol>
+          <li><span class="step-num">1</span><span>Ouvrez votre Google Sheet → menu <strong>Extensions</strong> → <strong>Apps Script</strong></span></li>
+          <li><span class="step-num">2</span><span>Dans <code>Code.gs</code>, supprimez tout et collez le contenu du fichier <strong>Code_Apps_Script.gs</strong> fourni</span></li>
+          <li><span class="step-num">3</span><span>Cliquez <strong>Déployer</strong> → <strong>Nouveau déploiement</strong> → Type : <em>Application Web</em></span></li>
+          <li><span class="step-num">4</span><span>Paramètres : <strong>Exécuter en tant que</strong> : Moi · <strong>Accès</strong> : Tout le monde → <strong>Déployer</strong></span></li>
+          <li><span class="step-num">5</span><span>Copiez l'<strong>URL de l'application Web</strong> et collez-la dans le champ ci-dessous</span></li>
+        </ol>
+      </div>
+
+      <!-- URL Google Sheet -->
+      <div class="config-field-panel">
+        <h3>🔗 URL du Google Sheet</h3>
+        <div class="config-field-label">COLLER L'URL COMPLÈTE DU GOOGLE SHEET</div>
+        <div class="config-field-row">
+          <input type="text" id="cfg-sheet-url" placeholder="https://docs.google.com/spreadsheets/d/…">
+          <button class="btn-config" onclick="saveSheetUrl()">Enregistrer</button>
+          <a id="cfg-sheet-open" href="#" target="_blank" class="btn-open-link" onclick="openSheetLink(event)">Ouvrir ↗</a>
+        </div>
+        <div class="config-note">Cette URL sert de référence. La synchronisation utilise le script Apps ci-dessous.</div>
+        <div id="status-sheet-url" class="status-msg"></div>
+      </div>
+
+      <!-- URL Apps Script -->
+      <div class="config-field-panel">
+        <h3>🚀 URL du Google Apps Script (Web App)</h3>
+        <div class="config-field-label">COLLER L'URL DE DÉPLOIEMENT DU SCRIPT</div>
+        <div class="config-field-row">
+          <input type="text" id="cfg-script-url" placeholder="https://script.google.com/macros/s/…/exec">
+          <button class="btn-config" onclick="saveScriptUrl()">Enregistrer</button>
+        </div>
+        <div class="config-note"><strong>Important</strong> : Accès requis : "Tout le monde" · Exécuter en tant que : "Moi"<br>Les onglets <strong>Historique</strong> et <strong>Config</strong> seront créés automatiquement dans votre Google Sheet.</div>
+        <div id="status-script-url" class="status-msg"></div>
+      </div>
+    </div>
+
+
+
+  </div>
+</div>
+
+<!-- MODAL ENTRÉE -->
+<div class="modal-overlay" id="modal-entry">
+  <div class="modal">
+    <h2 id="modal-title">Nouvelle entrée</h2>
+    <div class="field"><label>Date</label><input type="date" id="f-date"></div>
+    <div class="field"><label>Nom et Prénom du Client</label><input type="text" id="f-nom" placeholder="MME / M ..."></div>
+    <div class="field"><label>Téléphone</label><input type="text" id="f-tel" placeholder="6XXXXXXXX"></div>
+    <div class="field"><label>Motif</label>
+      <select id="f-motif">
+        <option value="" disabled selected>— Sélectionner un motif —</option>
+        <option>Encaissement suite impayé</option>
+        <option>Encaissement normal</option>
+        <option>Encaissement pour déblocage seuil</option>
+        <option>Encaissement pour paiement en avance</option>
+        <option>Remboursement</option>
+        <option>Autre</option>
+      </select>
+    </div>
+    <div class="field"><label>RUN / MAY</label>
+      <div style="display:flex;gap:10px;">
+        <button type="button" id="btn-may" class="toggle-btn active-may" onclick="selectRunMay('OUI MAY')">OUI MAY</button>
+        <button type="button" id="btn-run" class="toggle-btn" onclick="selectRunMay('OUI RUN')">OUI RUN</button>
+      </div>
+      <input type="hidden" id="f-runmay" value="OUI MAY">
+    </div>
+    <div class="field"><label>Montant (€)</label><input type="number" id="f-montant" placeholder="0.00" step="0.01" min="0"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModals()">Annuler</button>
+      <button class="btn-save" onclick="saveEntry()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL USER -->
+<div class="modal-overlay" id="modal-user">
+  <div class="modal">
+    <h2 id="modal-user-title">Nouvel utilisateur</h2>
+    <div class="field"><label>Prénom / Nom</label><input type="text" id="u-prenom" placeholder="Ex: Lauraine Dupont"></div>
+    <div class="field"><label>Identifiant</label><input type="text" id="u-login" placeholder="Ex: ldupont"></div>
+    <div class="field"><label>Mot de passe</label><input type="password" id="u-pass" placeholder="••••••••"></div>
+    <div class="field"><label>Rôle</label>
+      <select id="u-role">
+        <option value="agent">Agent</option>
+        <option value="supervisor">Superviseur</option>
+        <option value="admin">Administrateur</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModals()">Annuler</button>
+      <button class="btn-save" onclick="saveUser()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─── STORAGE HELPERS ──────────────────────────────────────────────────────────
+function lsGet(key, fallback) {
+  try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : fallback; } catch(e) { return fallback; }
+}
+function lsSet(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+}
+function lsRaw(key, fallback) {
+  return localStorage.getItem(key) || fallback;
+}
+
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+const DEFAULT_USERS = [
+  { id: 1, prenom: 'Admin',    login: 'admin',    pass: 'admin123',  role: 'admin',      created: '01/06/2026' },
+  { id: 2, prenom: 'Lauraine', login: 'lauraine', pass: 'lauraine1', role: 'agent',      created: '01/06/2026' },
+  { id: 3, prenom: 'Marie',    login: 'marie',    pass: 'marie123',  role: 'agent',      created: '01/06/2026' },
+  { id: 4, prenom: 'Superviseur', login: 'superviseur', pass: 'super2026', role: 'supervisor', created: '01/06/2026' },
+];
+
+let users   = lsGet('enc_users', null) || JSON.parse(JSON.stringify(DEFAULT_USERS));
+let entries = lsGet('enc_entries', null) || [
+  { id:1, date:'01/06/2026', nom:'MME Youmna ABDOU',                  tel:'639979079', motif:'Encaissement suite impayé', runmay:'OUI MAY', montant:15.00, agent:'Lauraine', agentId:2 },
+  { id:2, date:'01/06/2026', nom:'M Moussa HAMADA',                   tel:'639970787', motif:'Encaissement suite impayé', runmay:'OUI MAY', montant:10.00, agent:'Lauraine', agentId:2 },
+  { id:3, date:'01/06/2026', nom:'MME Valentin Martial Daniel PARAGE',tel:'692937977', motif:'Encaissement suite impayé', runmay:'OUI RUN', montant:19.99, agent:'Lauraine', agentId:2 },
+];
+
+let sheetUrl  = lsRaw('enc_sheet_url', 'https://docs.google.com/spreadsheets/d/1vl_GAw7aQAW6tNx0fgWs1cj4Ym-ecxX-X8XQE8lxLpA/edit');
+let scriptUrl = lsRaw('enc_script_url', 'https://script.google.com/macros/s/AKfycbx0Hm-qgn-tSFxDT3VtdrxQ3mBv9uxBdIqXV2RsqeOmSIQmuDo6ZZDuctbj39ThH1mh9Q/exec');
+// Pré-remplir si jamais le localStorage est vide
+if (!localStorage.getItem('enc_script_url')) localStorage.setItem('enc_script_url', scriptUrl);
+if (!localStorage.getItem('enc_sheet_url'))  localStorage.setItem('enc_sheet_url', sheetUrl);
+let currentUser     = null;
+let editingEntryId  = null;
+let editingUserId   = null;
+let nextEntryId = entries.length ? Math.max(...entries.map(e=>e.id))+1 : 1;
+let nextUserId  = users.length  ? Math.max(...users.map(u=>u.id))+1  : 1;
+
+function save() { lsSet('enc_users', users); lsSet('enc_entries', entries); }
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show' + (type ? ' '+type : '');
+  clearTimeout(t._t); t._t = setTimeout(() => t.className = '', 3200);
+}
+function showStatus(id, msg, type) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg; el.className = 'status-msg ' + type; el.style.display = 'block';
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const l = document.getElementById('inp-user').value.trim().toLowerCase();
+  const p = document.getElementById('inp-pass').value;
+  if (!l || !p) return;
+
+  const btn  = document.getElementById('btn-login');
+  const info = document.getElementById('login-info');
+  btn.disabled = true;
+  btn.textContent = 'Connexion…';
+  document.getElementById('login-err').style.display = 'none';
+
+  // 1. Essayer de charger les utilisateurs depuis Config (Sheets)
+  if (scriptUrl) {
+    info.style.display = 'block';
+    info.textContent   = 'Vérification des accès en cours…';
+    try {
+      const json = await gsCall({ action: 'getConfig' });
+      if (json.success && Array.isArray(json.users) && json.users.length > 0) {
+        // Fusionner avec les utilisateurs locaux
+        json.users.forEach(nu => {
+          const existing = users.find(u => u.login.toLowerCase() === nu.login.toLowerCase());
+          if (existing) {
+            Object.assign(existing, { prenom: nu.prenom, pass: nu.pass, role: nu.role });
+          } else {
+            nu.id = nextUserId++;
+            users.push(nu);
+          }
+        });
+        save();
+      }
+    } catch(e) {
+      // Sheets inaccessible — on continue avec les utilisateurs locaux
+      info.textContent = 'Sheets inaccessible, accès local utilisé.';
+    }
+  }
+
+  info.style.display = 'none';
+  btn.disabled = false;
+  btn.textContent = 'Se connecter';
+
+  // 2. Vérifier les identifiants (local + Sheets fusionnés)
+  let u = users.find(u => u.login.toLowerCase() === l && u.pass === p);
+  if (!u) {
+    document.getElementById('login-err').style.display = 'block';
+    document.getElementById('inp-pass').value = '';
+    return;
+  }
+
+  document.getElementById('login-err').style.display = 'none';
+  _startSession(u);
+}
+
+function _startSession(u) {
+  currentUser = u;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('disp-user').textContent = u.prenom;
+
+  const roleEl = document.getElementById('disp-role');
+  const roleLabels = { admin:'Administrateur', supervisor:'Superviseur', agent:'Agent' };
+  roleEl.textContent = roleLabels[u.role] || u.role;
+  roleEl.className = 'role-chip role-' + (u.role || 'agent');
+
+  const isSuperOrAdmin = u.role === 'supervisor' || u.role === 'admin';
+  document.querySelectorAll('.supervisor-tab').forEach(el => {
+    el.style.display = isSuperOrAdmin ? 'block' : 'none';
+  });
+  document.querySelectorAll('.admin-tab').forEach(el => {
+    el.style.display = u.role === 'admin' ? 'block' : 'none';
+  });
+
+  // Filtres isolés et graphique visibles pour supervisor/admin
+  const filtersBar = document.getElementById('filters-bar');
+  const chartPanel = document.getElementById('chart-panel');
+  if (isSuperOrAdmin) {
+    filtersBar.classList.add('visible');
+    chartPanel.classList.add('visible');
+    // Masquer les filtres dans la toolbar pour supervisor/admin
+    document.getElementById('agent-filters').style.display = 'none';
+  } else {
+    filtersBar.classList.remove('visible');
+    chartPanel.classList.remove('visible');
+    document.getElementById('agent-filters').style.display = 'flex';
+  }
+
+  // Pré-remplir les URLs dans la page config
+  document.getElementById('cfg-sheet-url').value = sheetUrl || '';
+  document.getElementById('cfg-script-url').value = scriptUrl || '';
+
+  // Bouton rafraîchir visible pour supervisor/admin
+  const btnRefresh = document.getElementById('btn-refresh-hist');
+  if (btnRefresh) btnRefresh.style.display = isSuperOrAdmin ? 'inline-flex' : 'none';
+
+
+  populateAgentFilter();
+  applyFilters();
+
+  // Démarrer la synchronisation automatique (polling toutes les 30s)
+  if (scriptUrl) startAutoSync();
+}
+
+// ─── SYNC AUTOMATIQUE ─────────────────────────────────────────────────────────
+let autoSyncInterval = null;
+
+function setSyncStatus(state) {
+  // state: 'idle' | 'syncing' | 'ok' | 'err'
+  const ind   = document.getElementById('sync-indicator');
+  const dot   = document.getElementById('sync-dot');
+  const label = document.getElementById('sync-label');
+  ind.style.display = 'flex';
+  const map = {
+    idle:    { color: 'var(--text3)',  text: 'Sheets connecté' },
+    syncing: { color: 'var(--gold)',   text: 'Synchronisation…' },
+    ok:      { color: 'var(--green)',  text: 'Sheets synchronisé' },
+    err:     { color: 'var(--danger)', text: 'Sheets inaccessible' }
+  };
+  const s = map[state] || map.idle;
+  dot.style.background   = s.color;
+  label.style.color      = s.color;
+  label.textContent      = s.text;
+  if (state === 'syncing') {
+    dot.style.animation = 'pulse 1s infinite';
+  } else {
+    dot.style.animation = '';
+  }
+}
+
+function startAutoSync() {
+  setSyncStatus('idle');
+
+  // Lancer immédiatement une synchro Historique au login
+  if (currentUser && (currentUser.role === 'supervisor' || currentUser.role === 'admin')) {
+    syncHistoriqueFromSheets(true);
+  }
+
+  // Polling toutes les 15s : Config (users) + Historique (superviseur/admin)
+  autoSyncInterval = setInterval(async () => {
+    // --- 1. Config (utilisateurs) ---
+    try {
+      const json = await gsCall({ action: 'getConfig' });
+      if (json.success && Array.isArray(json.users) && json.users.length > 0) {
+        let changed = false;
+        json.users.forEach(nu => {
+          const existing = users.find(u => u.login.toLowerCase() === nu.login.toLowerCase());
+          if (existing) {
+            if (existing.pass !== nu.pass || existing.role !== nu.role || existing.prenom !== nu.prenom) {
+              Object.assign(existing, { prenom: nu.prenom, pass: nu.pass, role: nu.role });
+              changed = true;
+            }
+          } else {
+            nu.id = nextUserId++;
+            users.push(nu);
+            changed = true;
+          }
+        });
+        if (changed) { save(); toast('Nouveaux accès chargés depuis Sheets ✓', 'ok'); }
+      }
+    } catch(e) { /* silencieux */ }
+
+    // --- 2. Historique (superviseur/admin uniquement) ---
+    if (currentUser && (currentUser.role === 'supervisor' || currentUser.role === 'admin')) {
+      syncHistoriqueFromSheets(false);
+    }
+  }, 15000);
+}
+
+// ─── SYNC HISTORIQUE DEPUIS SHEETS ───────────────────────────────────────────
+async function syncHistoriqueFromSheets(isInitial = false) {
+  if (!scriptUrl) return;
+  setSyncStatus('syncing');
+  try {
+    const json = await gsCall({ action: 'getHistorique' });
+    if (!json.success || !Array.isArray(json.rows)) {
+      setSyncStatus('err');
+      setTimeout(() => setSyncStatus('idle'), 6000);
+      return;
+    }
+
+    // Colonnes attendues : [DATE, NOM ET PRENOM DU CLIENT, NUMERO, MOTIF, ZONE, MONTANT, CSA]
+    const sheetEntries = json.rows
+      .filter(r => r && r[0] && r[5])
+      .map((r, idx) => {
+        const dateRaw = String(r[0] || '').trim();
+        const nom     = String(r[1] || '').trim();
+        const tel     = String(r[2] || '').trim();
+        const motif   = String(r[3] || '').trim();
+        const runmay  = String(r[4] || '').trim();
+        const montant = parseFloat(String(r[5]).replace(',', '.')) || 0;
+        const agent   = String(r[6] || '').trim();
+        // Normaliser la date depuis Google Sheets
+        // Formats possibles : "2026-06-04T11:57:00.000Z", "2026-06-04", "04/06/2026", "04/06/2026 11:57"
+        let date = dateRaw;
+        if (/^\d{4}-\d{2}-\d{2}/.test(dateRaw)) {
+          // Format ISO : extraire proprement via Date()
+          const dt = new Date(dateRaw);
+          if (!isNaN(dt)) {
+            const dd = String(dt.getDate()).padStart(2, '0');
+            const mm = String(dt.getMonth() + 1).padStart(2, '0');
+            const yy = dt.getFullYear();
+            const hh = String(dt.getHours()).padStart(2, '0');
+            const mi = String(dt.getMinutes()).padStart(2, '0');
+            date = `${dd}/${mm}/${yy} ${hh}:${mi}`;
+          }
+        }
+        // agentId = -1 : entrée Sheet, visible par supervisor/admin sans restriction
+        return { id: idx + 1, date, nom, tel, motif, runmay, montant, agent, agentId: -1 };
+      });
+
+    // Le Sheet EST l'historique du superviseur : remplacement total, sans logique de pending.
+    // Les agents gèrent leur propre localStorage séparément.
+    entries = sheetEntries;
+    nextEntryId = entries.length + 1;
+
+    // Trier par date décroissante
+    entries.sort((a, b) => {
+      const da = dateToISO(a.date), db = dateToISO(b.date);
+      return db < da ? -1 : db > da ? 1 : 0;
+    });
+
+    save();
+    populateAgentFilter();
+    applyFilters();
+
+    // Heure de dernière synchro
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mi = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    const syncLabel = document.getElementById('sync-label');
+    if (syncLabel) syncLabel.title = `Dernière synchro : ${hh}:${mi}:${ss}`;
+
+    setSyncStatus('ok');
+    setTimeout(() => setSyncStatus('idle'), 3000);
+  } catch(e) {
+    setSyncStatus('err');
+    setTimeout(() => setSyncStatus('idle'), 6000);
+  }
+}
+
+
+function stopAutoSync() {
+  if (autoSyncInterval) { clearInterval(autoSyncInterval); autoSyncInterval = null; }
+  const ind = document.getElementById('sync-indicator');
+  if (ind) ind.style.display = 'none';
+}
+
+async function silentLoadConfig() {
+  try {
+    const res  = await fetch(scriptUrl + '?action=getConfig');
+    const json = await res.json();
+    if (json.success && Array.isArray(json.users) && json.users.length > 0) {
+      json.users.forEach(nu => {
+        const existing = users.find(u => u.login === nu.login);
+        if (existing) {
+          Object.assign(existing, { prenom: nu.prenom, pass: nu.pass, role: nu.role });
+        } else {
+          nu.id = nextUserId++;
+          users.push(nu);
+        }
+      });
+      save();
+      toast(`${json.users.length} comptes rechargés depuis Config ✓`, 'ok');
+    }
+  } catch(e) { /* silencieux */ }
+}
+
+document.getElementById('inp-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('inp-user').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('inp-pass').focus(); });
+
+function doLogout() {
+  currentUser = null;
+  stopAutoSync();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('inp-user').value = '';
+  document.getElementById('inp-pass').value = '';
+  document.getElementById('login-err').style.display = 'none';
+  document.querySelectorAll('.supervisor-tab').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.admin-tab').forEach(el => el.style.display = 'none');
+  const btnR = document.getElementById('btn-refresh-hist');
+  if (btnR) btnR.style.display = 'none';
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  const tabMap = { historique: '.nav-tab:first-child', users: '#tab-users', config: '#tab-config' };
+  const tab = document.querySelector(tabMap[p]);
+  if (tab) tab.classList.add('active');
+  if (p === 'users')      renderUsers();
+  if (p === 'historique') applyFilters();
+}
+
+// ─── STATS ────────────────────────────────────────────────────────────────────
+function renderStats(filtered) {
+  const src   = filtered !== undefined ? filtered : entries;
+  const total = src.reduce((s,e)=>s+e.montant,0);
+  const may   = src.filter(e=>e.runmay==='OUI MAY').reduce((s,e)=>s+e.montant,0);
+  const run   = src.filter(e=>e.runmay==='OUI RUN').reduce((s,e)=>s+e.montant,0);
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-card gold-bar"><div class="label">Total encaissé</div><div class="value gold">${fmt(total)}</div></div>
+    <div class="stat-card gold-bar"><div class="label">Entrées</div><div class="value gold">${src.length}</div></div>
+    <div class="stat-card"><div class="label">Total MAY</div><div class="value green">${fmt(may)}</div></div>
+    <div class="stat-card"><div class="label">Total RUN</div><div class="value orange">${fmt(run)}</div></div>
+  `;
+}
+function fmt(n) { return n.toLocaleString('fr-FR',{minimumFractionDigits:2}) + ' €'; }
+
+// ─── AGENTS FILTER POPULATION ─────────────────────────────────────────────────
+function populateAgentFilter() {
+  const sel = document.getElementById('filter-agent');
+  const cur = sel.value;
+  const agents = [...new Set(entries.map(e=>e.agent).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">👤 Agent — Tous</option>' +
+    agents.map(a=>`<option value="${a}"${a===cur?' selected':''}>${a}</option>`).join('');
+}
+
+// ─── DATE HELPERS ─────────────────────────────────────────────────────────────
+// entries store dates as DD/MM/YYYY
+function parseEntryDate(str) {
+  const datePart = str.split(' ')[0];
+  const [d,m,y] = datePart.split('/');
+  return new Date(+y, +m-1, +d);
+}
+function dateToISO(str) {
+  // Handle "DD/MM/YYYY HH:MM" or "DD/MM/YYYY"
+  const datePart = str.split(' ')[0];
+  const [d,m,y] = datePart.split('/');
+  return `${y}-${m}-${d}`;
+}
+
+// ─── FILTERS ──────────────────────────────────────────────────────────────────
+function getFiltered() {
+  const q      = document.getElementById('search-input').value.toLowerCase();
+  const isAgent = currentUser && currentUser.role === 'agent';
+  const isSuperOrAdmin = !isAgent;
+
+  // Supervisor/admin use the filters-bar; agents use toolbar selects
+  const rm    = isSuperOrAdmin
+    ? document.getElementById('filter-runmay').value
+    : document.getElementById('filter-runmay-agent').value;
+  const mo    = isSuperOrAdmin
+    ? document.getElementById('filter-motif').value
+    : document.getElementById('filter-motif-agent').value;
+  const month  = isSuperOrAdmin ? document.getElementById('filter-month').value : '';
+  const agent  = isSuperOrAdmin ? document.getElementById('filter-agent').value : '';
+  const dfrom  = isSuperOrAdmin ? document.getElementById('filter-date-from').value : '';
+  const dto    = isSuperOrAdmin ? document.getElementById('filter-date-to').value : '';
+
+  return entries.filter(e => {
+    const iso  = dateToISO(e.date);
+    const mm   = iso.slice(5,7);
+    // Agents : uniquement leurs propres saisies locales
+    // Superviseur/admin : toutes les entrées du Sheet (agentId === -1)
+    if (isAgent && e.agentId !== currentUser.id) return false;
+    if (q     && !(e.nom||'').toLowerCase().includes(q) && !String(e.tel||'').includes(q) && !(e.agent||'').toLowerCase().includes(q)) return false;
+    if (rm    && e.runmay !== rm)    return false;
+    if (mo    && e.motif  !== mo)    return false;
+    if (month && mm !== month)       return false;
+    if (agent && e.agent  !== agent) return false;
+    if (dfrom && iso < dfrom)        return false;
+    if (dto   && iso > dto)          return false;
+    return true;
+  });
+}
+
+function applyFilters() {
+  const filtered = getFiltered();
+  renderStats(filtered);
+  renderTable(filtered);
+  renderChart(filtered);
+}
+
+function resetFilters() {
+  document.getElementById('search-input').value = '';
+  ['filter-runmay','filter-motif','filter-month','filter-agent','filter-runmay-agent','filter-motif-agent'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('filter-date-from').value = '';
+  document.getElementById('filter-date-to').value = '';
+  applyFilters();
+}
+
+// ─── TABLE ────────────────────────────────────────────────────────────────────
+function renderTable(filtered) {
+  if (!filtered) filtered = getFiltered();
+  const tbody = document.getElementById('table-body');
+  if (!filtered.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Aucune entrée trouvée</td></tr>'; return; }
+  const isSuperOrAdmin = currentUser && currentUser.role !== 'agent';
+  tbody.innerHTML = filtered.map(e => `
+    <tr>
+      <td class="date-cell">${e.date}</td>
+      <td>${e.nom}</td>
+      <td class="date-cell">${e.tel}</td>
+      <td><span class="chip chip-motif" title="${e.motif}">${e.motif}</span></td>
+      <td><span class="chip ${e.runmay==='OUI MAY'?'chip-may':'chip-run'}">${e.runmay}</span></td>
+      <td class="montant">${e.montant.toLocaleString('fr-FR',{minimumFractionDigits:2})} €</td>
+      <td class="agent-cell">${e.agent}</td>
+      <td>${isSuperOrAdmin ? `<button class="btn-sm btn-remove" style="font-size:12px;padding:4px 10px;" onclick="deleteEntryLocal(${e.id})">Supprimer</button>` : ''}</td>
+    </tr>
+  `).join('');
+}
+
+
+
+// Suppression locale uniquement (sans supprimer dans Google Sheet)
+function deleteEntryLocal(id) {
+  if (!confirm('Supprimer cette entrée de l\'affichage local ?\n(Les données restent dans Google Sheet)')) return;
+  entries = entries.filter(e=>e.id!==id);
+  save(); populateAgentFilter(); applyFilters(); toast('Entrée supprimée localement','info');
+}
+
+function deleteEntry(id) {
+  if (!confirm('Supprimer cette entrée ?')) return;
+  entries = entries.filter(e=>e.id!==id);
+  save(); populateAgentFilter(); applyFilters(); toast('Entrée supprimée','err');
+}
+
+function selectRunMay(val) {
+  document.getElementById('f-runmay').value = val;
+  document.getElementById('btn-may').className = 'toggle-btn' + (val==='OUI MAY' ? ' active-may' : '');
+  document.getElementById('btn-run').className = 'toggle-btn' + (val==='OUI RUN' ? ' active-run' : '');
+}
+// ─── MODAL ENTRÉE ─────────────────────────────────────────────────────────────
+function openAddModal() {
+  document.getElementById('modal-title').textContent = 'Nouvelle entrée';
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  ['f-nom','f-tel','f-montant'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-motif').value = '';
+  selectRunMay('OUI MAY');
+  document.getElementById('modal-entry').classList.add('open');
+}
+
+async function saveEntry() {
+  const dateRaw = document.getElementById('f-date').value;
+  const nom     = document.getElementById('f-nom').value.trim();
+  const tel     = document.getElementById('f-tel').value.trim();
+  const motif   = document.getElementById('f-motif').value;
+  const runmay  = document.getElementById('f-runmay').value;
+  const montant = parseFloat(document.getElementById('f-montant').value);
+  if (!nom || !tel || !motif || isNaN(montant)) { alert('Veuillez remplir tous les champs.'); return; }
+  const [y,m,d] = dateRaw.split('-');
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mi = String(now.getMinutes()).padStart(2,'0');
+  const date = `${d}/${m}/${y} ${hh}:${mi}`;
+  const entry = { id: nextEntryId++, date, nom, tel, motif, runmay, montant, agent: currentUser.prenom, agentId: currentUser.id };
+  entries.push(entry);
+  save(); closeModals(); populateAgentFilter(); applyFilters();
+
+  // Envoi immédiat vers Google Sheets — colonnes exactes du Sheet
+  if (scriptUrl) {
+    setSyncStatus('syncing');
+    try {
+      const json = await gsCall({
+        action             : 'addEntry',
+        DATE               : date,
+        NOM_PRENOM_CLIENT  : nom,
+        NUMERO             : tel,
+        MOTIF              : motif,
+        ZONE               : runmay,
+        MONTANT            : montant.toFixed(2),
+        CSA                : currentUser.prenom
+      });
+      if (json.success) {
+        setSyncStatus('ok');
+        toast('Enregistré + envoyé vers Sheets ✓', 'ok');
+        setTimeout(() => setSyncStatus('idle'), 3000);
+      } else {
+        setSyncStatus('err');
+        toast('Sauvegardé localement. Sheets : ' + (json.error || 'erreur'), 'err');
+        setTimeout(() => setSyncStatus('idle'), 5000);
+      }
+    } catch(e) {
+      setSyncStatus('err');
+      toast('Sauvegardé localement. Sheets inaccessible.', 'err');
+      setTimeout(() => setSyncStatus('idle'), 5000);
+    }
+  } else {
+    toast('Entrée enregistrée ✓', 'ok');
+  }
+}
+
+// ─── USERS ────────────────────────────────────────────────────────────────────
+const ROLE_LABELS = { admin:'Administrateur', supervisor:'Superviseur', agent:'Agent' };
+
+function openUserModal(id=null) {
+  editingUserId = id;
+  if (id) {
+    const u = users.find(u=>u.id===id);
+    document.getElementById('modal-user-title').textContent = 'Modifier l\'utilisateur';
+    document.getElementById('u-prenom').value = u.prenom;
+    document.getElementById('u-login').value  = u.login;
+    document.getElementById('u-pass').value   = u.pass;
+    document.getElementById('u-role').value   = u.role;
+  } else {
+    document.getElementById('modal-user-title').textContent = 'Nouvel utilisateur';
+    ['u-prenom','u-login','u-pass'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('u-role').value = 'agent';
+  }
+  document.getElementById('modal-user').classList.add('open');
+}
+
+async function saveUser() {
+  const prenom = document.getElementById('u-prenom').value.trim();
+  const login  = document.getElementById('u-login').value.trim();
+  const pass   = document.getElementById('u-pass').value;
+  const role   = document.getElementById('u-role').value;
+  if (!prenom || !login || !pass) { alert('Veuillez remplir tous les champs.'); return; }
+  if (users.find(u=>u.login===login && u.id!==editingUserId)) { alert('Identifiant déjà utilisé.'); return; }
+  if (editingUserId) {
+    Object.assign(users.find(u=>u.id===editingUserId), { prenom, login, pass, role });
+  } else {
+    const now = new Date();
+    const d=String(now.getDate()).padStart(2,'0'), m=String(now.getMonth()+1).padStart(2,'0'), y=now.getFullYear();
+    users.push({ id: nextUserId++, prenom, login, pass, role, created:`${d}/${m}/${y}` });
+  }
+  save(); closeModals(); renderUsers(); toast('Utilisateur enregistré ✓','ok');
+
+  // Synchronisation immédiate vers l'onglet Config du Google Sheet
+  if (scriptUrl) {
+    toast('Synchronisation vers Google Sheets…', 'info');
+    try {
+      const json = await gsCall({ action: 'writeConfig', users });
+      if (json.success) {
+        toast(`Utilisateurs synchronisés dans Sheets ✓`, 'ok');
+        showStatus('status-users', `✓ ${json.written} utilisateurs synchronisés dans l'onglet Config.`, 'ok');
+      } else {
+        toast('Sheets : ' + (json.error || 'erreur lors de la sync'), 'err');
+        showStatus('status-users', '✗ ' + (json.error || 'Erreur lors de la synchronisation.'), 'err');
+      }
+    } catch(e) {
+      toast('Utilisateur enregistré localement. Sheets inaccessible.', 'err');
+      showStatus('status-users', '✗ Connexion impossible. L\'utilisateur est enregistré localement.', 'err');
+    }
+  }
+}
+
+async function deleteUser(id) {
+  if (id===currentUser.id) { alert('Vous ne pouvez pas supprimer votre propre compte.'); return; }
+  if (!confirm('Supprimer cet utilisateur ?')) return;
+  users = users.filter(u=>u.id!==id);
+  save(); renderUsers(); toast('Utilisateur supprimé','err');
+
+  // Synchronisation immédiate vers l'onglet Config du Google Sheet
+  if (scriptUrl) {
+    try {
+      const json = await gsCall({ action: 'writeConfig', users });
+      if (json.success) {
+        showStatus('status-users', `✓ Suppression synchronisée dans l'onglet Config.`, 'ok');
+      } else {
+        showStatus('status-users', '✗ ' + (json.error || 'Erreur lors de la synchronisation.'), 'err');
+      }
+    } catch(e) {
+      showStatus('status-users', '✗ Connexion impossible. Suppression enregistrée localement.', 'err');
+    }
+  }
+}
+
+function renderUsers() {
+  const tbody = document.getElementById('users-body');
+  if (!users.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Aucun utilisateur</td></tr>'; return; }
+  tbody.innerHTML = users.map(u=>`
+    <tr>
+      <td><strong>${u.prenom}</strong></td>
+      <td><span style="font-family:'DM Mono',monospace;font-size:13px;">${u.login}</span></td>
+      <td>
+        <span class="pass-mask" id="pass-${u.id}" style="cursor:pointer;" title="Cliquer pour afficher" onclick="togglePass(${u.id},'${u.pass}')">${'•'.repeat(Math.min(u.pass.length,12))}</span>
+      </td>
+      <td><span class="role-chip role-${u.role}">${ROLE_LABELS[u.role]||u.role}</span></td>
+      <td class="date-cell">${u.created}</td>
+      <td style="text-align:right;display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn-sm btn-edit"   onclick="openUserModal(${u.id})">Modifier</button>
+        <button class="btn-sm btn-remove" onclick="deleteUser(${u.id})">Supprimer</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// Afficher/masquer mot de passe au clic
+function togglePass(id, pass) {
+  const el = document.getElementById('pass-' + id);
+  if (!el) return;
+  if (el.dataset.shown === '1') {
+    el.textContent = '•'.repeat(Math.min(pass.length, 12));
+    el.dataset.shown = '0';
+  } else {
+    el.textContent = pass;
+    el.style.fontFamily = "'DM Mono', monospace";
+    el.dataset.shown = '1';
+    // Masquer à nouveau après 5 secondes
+    setTimeout(() => {
+      el.textContent = '•'.repeat(Math.min(pass.length, 12));
+      el.dataset.shown = '0';
+    }, 5000);
+  }
+}
+
+function renderCredentials() {
+  // Appelée après import/export pour synchroniser l'affichage
+  renderUsers();
+}
+
+
+
+
+
+// ─── FETCH HELPER : tous les appels passent en GET pour éviter les CORS ───────
+async function gsCall(params) {
+  const url = scriptUrl + '?' + Object.entries({...params, ts: Date.now()})
+    .map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(typeof v === 'object' ? JSON.stringify(v) : v))
+    .join('&');
+  const res = await fetch(url);
+  return await res.json();
+}
+
+// ─── SYNC SHEETS ──────────────────────────────────────────────────────────────
+async function syncToSheets() {
+  if (!scriptUrl) { toast('URL du script Apps non configurée.','err'); return; }
+  const header = ['DATE','NOM ET PRENOM DU CLIENT','NUMERO','MOTIF','ZONE','MONTANT','CSA'];
+  const rows   = entries.map(e=>[e.date, e.nom, e.tel, e.motif, e.runmay, e.montant.toFixed(2), e.agent]);
+  toast('Synchronisation en cours…','info');
+  try {
+    const json = await gsCall({ action: 'writeHistorique', data: [header, ...rows] });
+    if (json.success) {
+      toast(`${json.written} lignes envoyées ✓`,'ok');
+    } else {
+      toast('Erreur : ' + (json.error||'inconnue'),'err');
+    }
+  } catch(e) {
+    toast('Impossible de joindre le script.','err');
+  }
+}
+
+async function exportConfigToSheets() {
+  if (!scriptUrl) { toast('URL du script Apps non configurée.','err'); return; }
+  toast('Export des utilisateurs vers Config…', 'info');
+  try {
+    const json = await gsCall({ action: 'writeConfig', users });
+    if (json.success) {
+      toast(`${json.written} utilisateurs exportés ✓`, 'ok');
+      showStatus('status-users', `✓ ${json.written} utilisateurs synchronisés vers Google Sheets.`, 'ok');
+    } else {
+      toast('Erreur : ' + (json.error || 'inconnue'), 'err');
+      showStatus('status-users', '✗ ' + (json.error || 'Erreur inconnue'), 'err');
+    }
+  } catch(e) {
+    toast('Impossible de joindre le script.', 'err');
+    showStatus('status-users', '✗ Connexion impossible. Vérifiez l\'URL et les permissions.', 'err');
+  }
+}
+
+async function loadFromConfig() {
+  if (!scriptUrl) { toast('URL du script Apps non configurée.','err'); return; }
+  toast('Chargement des utilisateurs…','info');
+  try {
+    const json = await gsCall({ action: 'getConfig' });
+    if (json.success && Array.isArray(json.users)) {
+      json.users.forEach(nu => {
+        const existing = users.find(u=>u.login===nu.login);
+        if (existing) Object.assign(existing, nu);
+        else { nu.id = nextUserId++; users.push(nu); }
+      });
+      save(); renderUsers(); renderCredentials();
+      toast(`${json.users.length} utilisateurs importés ✓`,'ok');
+      showStatus('status-users',`✓ ${json.users.length} utilisateurs importés depuis Google Sheets.`,'ok');
+    } else {
+      toast('Format inattendu depuis le script.','err');
+      showStatus('status-users','✗ ' + (json.error||'Format inattendu'),'err');
+    }
+  } catch(e) {
+    toast('Impossible de joindre le script.','err');
+    showStatus('status-users','✗ Connexion impossible. Vérifiez l\'URL et les permissions.','err');
+  }
+}
+
+// ─── EXPORT CSV ───────────────────────────────────────────────────────────────
+function exportCSV() {
+  const filtered = getFiltered();
+  const header = ['Date','Nom et Prénom du Client','Téléphone','Motif','RUN/MAY','Montant','Agent'];
+  const rows   = filtered.map(e=>[e.date,e.nom,e.tel,e.motif,e.runmay,e.montant.toFixed(2),e.agent]);
+  const csv    = [header,...rows].map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download = `encaissements_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click(); toast('Export CSV téléchargé ✓','ok');
+}
+
+// ─── GRAPHIQUE DAILY/MONTHLY SVG ─────────────────────────────────────────────
+let chartMode = 'daily'; // 'daily' | 'monthly'
+
+function setChartMode(mode) {
+  chartMode = mode;
+  document.getElementById('tab-daily').classList.toggle('active', mode === 'daily');
+  document.getElementById('tab-monthly').classList.toggle('active', mode === 'monthly');
+  renderChart();
+}
+
+function renderChart(filtered) {
+  const panel = document.getElementById('chart-panel');
+  if (!panel.classList.contains('visible')) return;
+  if (!filtered) filtered = getFiltered();
+  if (chartMode === 'daily') renderChartDaily(filtered);
+  else renderChartMonthly(filtered);
+}
+
+function renderChartSVG(groups, labels) {
+  const svg = document.getElementById('chart-svg');
+  if (!groups.length) {
+    svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="#9ca3af" font-size="13" font-family="DM Sans,sans-serif">Aucune donnée à afficher</text>';
+    return;
+  }
+
+  const W = svg.clientWidth || 900;
+  const H = 180;
+  const PAD_L = 60, PAD_R = 20, PAD_T = 24, PAD_B = 36;
+  const chartW = W - PAD_L - PAD_R;
+  const chartH = H - PAD_T - PAD_B;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('height', H);
+
+  const allVals = groups.flatMap(g => [g.may, g.run]);
+  const maxVal = Math.max(...allVals, 1);
+
+  const barW = Math.max(8, Math.min(32, Math.floor((chartW / groups.length) * 0.35)));
+  const groupW = chartW / groups.length;
+
+  // Grid lines
+  const gridLines = 4;
+  let svgHtml = '';
+  for (let i = 0; i <= gridLines; i++) {
+    const y = PAD_T + (chartH / gridLines) * i;
+    const val = maxVal * (1 - i / gridLines);
+    svgHtml += `<line x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}" stroke="#e8eaf0" stroke-width="1"/>`;
+    if (val > 0) {
+      const label = val >= 1000 ? (val/1000).toFixed(0)+'k' : Math.round(val).toString();
+      svgHtml += `<text x="${PAD_L - 6}" y="${y + 4}" text-anchor="end" fill="#9ca3af" font-size="10" font-family="DM Sans,sans-serif">${label}</text>`;
+    }
+  }
+
+  // Bars
+  groups.forEach((g, i) => {
+    const cx = PAD_L + i * groupW + groupW / 2;
+    const xMay = cx - barW - 2;
+    const xRun = cx + 2;
+
+    const hMay = g.may > 0 ? Math.max(3, Math.round((g.may / maxVal) * chartH)) : 0;
+    const hRun = g.run > 0 ? Math.max(3, Math.round((g.run / maxVal) * chartH)) : 0;
+    const yMay = PAD_T + chartH - hMay;
+    const yRun = PAD_T + chartH - hRun;
+
+    // MAY bar
+    if (hMay > 0) {
+      svgHtml += `<rect x="${xMay}" y="${yMay}" width="${barW}" height="${hMay}" rx="3" fill="url(#gradMay)"/>`;
+      if (hMay > 18) {
+        const label = g.may >= 1000 ? (g.may/1000).toFixed(1)+'k' : Math.round(g.may).toString();
+        svgHtml += `<text x="${xMay + barW/2}" y="${yMay - 4}" text-anchor="middle" fill="#2e8b57" font-size="9" font-weight="600" font-family="DM Mono,monospace">${label}</text>`;
+      }
+    }
+    // RUN bar
+    if (hRun > 0) {
+      svgHtml += `<rect x="${xRun}" y="${yRun}" width="${barW}" height="${hRun}" rx="3" fill="url(#gradRun)"/>`;
+      if (hRun > 18) {
+        const label = g.run >= 1000 ? (g.run/1000).toFixed(1)+'k' : Math.round(g.run).toString();
+        svgHtml += `<text x="${xRun + barW/2}" y="${yRun - 4}" text-anchor="middle" fill="#c97c2a" font-size="9" font-weight="600" font-family="DM Mono,monospace">${label}</text>`;
+      }
+    }
+
+    // X label
+    svgHtml += `<text x="${cx}" y="${PAD_T + chartH + 16}" text-anchor="middle" fill="#6b7280" font-size="10" font-family="DM Sans,sans-serif">${labels[i]}</text>`;
+  });
+
+  // Baseline
+  svgHtml += `<line x1="${PAD_L}" y1="${PAD_T + chartH}" x2="${W - PAD_R}" y2="${PAD_T + chartH}" stroke="#d0d4de" stroke-width="1.5"/>`;
+
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="gradMay" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3aad70"/>
+        <stop offset="100%" stop-color="#2e8b57"/>
+      </linearGradient>
+      <linearGradient id="gradRun" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#e8962a"/>
+        <stop offset="100%" stop-color="#c97c2a"/>
+      </linearGradient>
+    </defs>
+    ${svgHtml}`;
+}
+
+function renderChartDaily(filtered) {
+  const byDay = {};
+  filtered.forEach(e => {
+    const iso = dateToISO(e.date);
+    if (!byDay[iso]) byDay[iso] = { may: 0, run: 0 };
+    if (e.runmay === 'OUI MAY') byDay[iso].may += e.montant;
+    else byDay[iso].run += e.montant;
+  });
+
+  const days = Object.keys(byDay).sort();
+  const groups = days.map(d => byDay[d]);
+  const labels = days.map(d => {
+    const [,, dd] = d.split('-');
+    return dd;
+  });
+  renderChartSVG(groups, labels);
+}
+
+function renderChartMonthly(filtered) {
+  const MONTHS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  const byMonth = {};
+  filtered.forEach(e => {
+    const iso = dateToISO(e.date);
+    const mo = iso.slice(0, 7); // YYYY-MM
+    if (!byMonth[mo]) byMonth[mo] = { may: 0, run: 0 };
+    if (e.runmay === 'OUI MAY') byMonth[mo].may += e.montant;
+    else byMonth[mo].run += e.montant;
+  });
+
+  const keys = Object.keys(byMonth).sort();
+  const groups = keys.map(k => byMonth[k]);
+  const labels = keys.map(k => {
+    const m = parseInt(k.slice(5,7)) - 1;
+    return MONTHS[m];
+  });
+  renderChartSVG(groups, labels);
+}
+
+// ─── CLEAR LOCAL HISTORY ──────────────────────────────────────────────────────
+function clearLocalHistory() {
+  if (!confirm('Supprimer tout l\'historique local ?\n\n⚠️ Les données restent enregistrées dans Google Sheet.\nCette action efface uniquement l\'affichage local.')) return;
+  entries = [];
+  save(); populateAgentFilter(); applyFilters();
+  toast('Historique local effacé. Données conservées dans Sheets.', 'info');
+}
+
+// ─── CONFIG URL SAVE ──────────────────────────────────────────────────────────
+function saveSheetUrl() {
+  const val = document.getElementById('cfg-sheet-url').value.trim();
+  if (!val) { showStatus('status-sheet-url','Veuillez saisir une URL.','err'); return; }
+  sheetUrl = val;
+  localStorage.setItem('enc_sheet_url', val);
+  showStatus('status-sheet-url','✓ URL du Google Sheet enregistrée.','ok');
+  toast('URL Sheet enregistrée ✓','ok');
+}
+
+function saveScriptUrl() {
+  const val = document.getElementById('cfg-script-url').value.trim();
+  if (!val) { showStatus('status-script-url','Veuillez saisir une URL.','err'); return; }
+  scriptUrl = val;
+  localStorage.setItem('enc_script_url', val);
+  showStatus('status-script-url','✓ URL du script Apps enregistrée.','ok');
+  toast('URL Script enregistrée ✓','ok');
+  if (!autoSyncInterval) startAutoSync();
+}
+
+function openSheetLink(e) {
+  e.preventDefault();
+  const url = document.getElementById('cfg-sheet-url').value.trim() || sheetUrl;
+  if (url && url.startsWith('http')) window.open(url, '_blank');
+  else alert('Veuillez d\'abord enregistrer une URL valide.');
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function closeModals() {
+  document.getElementById('modal-entry').classList.remove('open');
+  document.getElementById('modal-user').classList.remove('open');
+}
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if(e.target===m) closeModals(); });
+});
+</script>
+</body>
+</html>
