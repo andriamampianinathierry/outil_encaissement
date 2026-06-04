@@ -677,7 +677,7 @@ let entries = lsGet('enc_entries', null) || [
 ];
 
 let sheetUrl  = lsRaw('enc_sheet_url', 'https://docs.google.com/spreadsheets/d/1vl_GAw7aQAW6tNx0fgWs1cj4Ym-ecxX-X8XQE8lxLpA/edit');
-let scriptUrl = lsRaw('enc_script_url', 'https://script.google.com/macros/s/AKfycbx0Hm-qgn-tSFxDT3VtdrxQ3mBv9uxBdIqXV2RsqeOmSIQmuDo6ZZDuctbj39ThH1mh9Q/exec');
+let scriptUrl = lsRaw('enc_script_url', 'https://script.google.com/macros/s/AKfycbz1_zmxksc6tCd5fkOlK9Hu9yqQv8OBsUpq26TvKFskra_7ssdE73qqsESSDgTtBGoVQw/exec');
 // Pré-remplir si jamais le localStorage est vide
 if (!localStorage.getItem('enc_script_url')) localStorage.setItem('enc_script_url', scriptUrl);
 if (!localStorage.getItem('enc_sheet_url'))  localStorage.setItem('enc_sheet_url', sheetUrl);
