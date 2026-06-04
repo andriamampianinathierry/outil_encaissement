@@ -1358,6 +1358,8 @@ async function exportConfigToSheets() {
   toast('Export des utilisateurs vers Config…', 'info');
   try {
     const json = await gsCallPost({ action: 'writeConfig', users });
+    if (json.success) {
+      toast(`${json.written} utilisateurs exportés ✓`, 'ok');
       showStatus('status-users', `✓ ${json.written} utilisateurs synchronisés vers Google Sheets.`, 'ok');
     } else {
       toast('Erreur : ' + (json.error || 'inconnue'), 'err');
