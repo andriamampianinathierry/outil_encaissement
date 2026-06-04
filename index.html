@@ -1158,7 +1158,7 @@ async function saveEntry() {
   if (scriptUrl) {
     setSyncStatus('syncing');
     try {
-      const json = await gsCall({
+      const json = await gsCallPost({
         action             : 'addEntry',
         DATE               : date,
         NOM_PRENOM_CLIENT  : nom,
@@ -1227,7 +1227,7 @@ async function saveUser() {
   if (scriptUrl) {
     toast('Synchronisation vers Google Sheets…', 'info');
     try {
-      const json = await gsCall({ action: 'writeConfig', users });
+      const json = await gsCallPost({ action: 'writeConfig', users });
       if (json.success) {
         toast(`Utilisateurs synchronisés dans Sheets ✓`, 'ok');
         showStatus('status-users', `✓ ${json.written} utilisateurs synchronisés dans l'onglet Config.`, 'ok');
@@ -1251,7 +1251,7 @@ async function deleteUser(id) {
   // Synchronisation immédiate vers l'onglet Config du Google Sheet
   if (scriptUrl) {
     try {
-      const json = await gsCall({ action: 'writeConfig', users });
+      const json = await gsCallPost({ action: 'writeConfig', users });
       if (json.success) {
         showStatus('status-users', `✓ Suppression synchronisée dans l'onglet Config.`, 'ok');
       } else {
@@ -1311,23 +1311,23 @@ function renderCredentials() {
 
 
 
-// ─── FETCH HELPER : tous les appels passent en GET pour éviter les CORS ───────
+// ─── FETCH HELPERS ────────────────────────────────────────────────────────────
+// GET : uniquement pour les lectures (getConfig, getHistorique)
 async function gsCall(params) {
   const url = scriptUrl + '?' + Object.entries({...params, ts: Date.now()})
     .map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(typeof v === 'object' ? JSON.stringify(v) : v))
     .join('&');
-  const res = await fetch(url, {
-    redirect: 'follow',
-    method: 'GET',
-  });
+  const res = await fetch(url, { redirect: 'follow' });
   const text = await res.text();
   return JSON.parse(text);
 }
 
+// POST : pour toutes les écritures (addEntry, writeHistorique, writeConfig)
+// Content-Type text/plain évite le preflight CORS OPTIONS bloqué par Google
 async function gsCallPost(params) {
   const res = await fetch(scriptUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' }, // pas application/json pour éviter preflight
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(params),
     redirect: 'follow',
   });
@@ -1342,7 +1342,7 @@ async function syncToSheets() {
   const rows   = entries.map(e=>[e.date, e.nom, e.tel, e.motif, e.runmay, e.montant.toFixed(2), e.agent]);
   toast('Synchronisation en cours…','info');
   try {
-    const json = await gsCall({ action: 'gsCallPost', data: [header, ...rows] });
+    const json = await gsCallPost({ action: 'writeHistorique', data: [header, ...rows] });
     if (json.success) {
       toast(`${json.written} lignes envoyées ✓`,'ok');
     } else {
@@ -1357,9 +1357,7 @@ async function exportConfigToSheets() {
   if (!scriptUrl) { toast('URL du script Apps non configurée.','err'); return; }
   toast('Export des utilisateurs vers Config…', 'info');
   try {
-    const json = await gsCall({ action: 'gsCallPost', users });
-    if (json.success) {
-      toast(`${json.written} utilisateurs exportés ✓`, 'ok');
+    const json = await gsCallPost({ action: 'writeConfig', users });
       showStatus('status-users', `✓ ${json.written} utilisateurs synchronisés vers Google Sheets.`, 'ok');
     } else {
       toast('Erreur : ' + (json.error || 'inconnue'), 'err');
