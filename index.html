@@ -669,15 +669,11 @@ const DEFAULT_USERS = [
   { id: 4, prenom: 'Superviseur', login: 'superviseur', pass: 'super2026', role: 'supervisor', created: '01/06/2026' },
 ];
 
-let users   = lsGet('enc_users', null) || JSON.parse(JSON.stringify(DEFAULT_USERS));
-let entries = lsGet('enc_entries', null) || [
-  { id:1, date:'01/06/2026', nom:'MME Youmna ABDOU',                  tel:'639979079', motif:'Encaissement suite impayé', runmay:'OUI MAY', montant:15.00, agent:'Lauraine', agentId:2 },
-  { id:2, date:'01/06/2026', nom:'M Moussa HAMADA',                   tel:'639970787', motif:'Encaissement suite impayé', runmay:'OUI MAY', montant:10.00, agent:'Lauraine', agentId:2 },
-  { id:3, date:'01/06/2026', nom:'MME Valentin Martial Daniel PARAGE',tel:'692937977', motif:'Encaissement suite impayé', runmay:'OUI RUN', montant:19.99, agent:'Lauraine', agentId:2 },
-];
+let users   = JSON.parse(JSON.stringify(DEFAULT_USERS));
+let entries = [];   // tout vient de Sheets désormais
 
-let sheetUrl  = lsRaw('enc_sheet_url', 'https://docs.google.com/spreadsheets/d/1vl_GAw7aQAW6tNx0fgWs1cj4Ym-ecxX-X8XQE8lxLpA/edit');
-let scriptUrl = lsRaw('enc_script_url', 'https://script.google.com/macros/s/AKfycby1JcilaO94Ke3DPNXpIezvFEjuof_ObBAAOaDtr3xqL7wJa9TzjFJ-oOSQLrCoeRvJ5w/exec');
+let sheetUrl  = lsRaw('enc_sheet_url', 'https://docs.google.com/spreadsheets/d/1vl_GAw7aQAW6tNx0fgWs1cj4Ym-ecxX-X8XQE8lxLpA/edit?gid=1434636162#gid=1434636162');
+let scriptUrl = lsRaw('enc_script_url', 'https://script.google.com/macros/s/AKfycbwhk3TxAbMjrGcUweyCUjiQCD4nx9mX_O38e-aTPtJaNEqH6KdCU2vsYzBMZw8pw6b55w/exec');
 // Pré-remplir si jamais le localStorage est vide
 if (!localStorage.getItem('enc_script_url')) localStorage.setItem('enc_script_url', scriptUrl);
 if (!localStorage.getItem('enc_sheet_url'))  localStorage.setItem('enc_sheet_url', sheetUrl);
@@ -687,7 +683,7 @@ let editingUserId   = null;
 let nextEntryId = entries.length ? Math.max(...entries.map(e=>e.id))+1 : 1;
 let nextUserId  = users.length  ? Math.max(...users.map(u=>u.id))+1  : 1;
 
-function save() { lsSet('enc_users', users); lsSet('enc_entries', entries); }
+function save() { lsSet('enc_users', users); /* plus de enc_entries */ }
 
 // ─── TOAST ────────────────────────────────────────────────────────────────────
 function toast(msg, type='') {
@@ -831,42 +827,15 @@ function setSyncStatus(state) {
 
 function startAutoSync() {
   setSyncStatus('idle');
+  // Charger l'historique pour tout le monde
+  syncHistoriqueFromSheets(true);
 
-  // Lancer immédiatement une synchro Historique au login
-  if (currentUser && (currentUser.role === 'supervisor' || currentUser.role === 'admin')) {
-    syncHistoriqueFromSheets(true);
-  }
-
-  // Polling toutes les 15s : Config (users) + Historique (superviseur/admin)
   autoSyncInterval = setInterval(async () => {
-    // --- 1. Config (utilisateurs) ---
-    try {
-      const json = await gsCall({ action: 'getConfig' });
-      if (json.success && Array.isArray(json.users) && json.users.length > 0) {
-        let changed = false;
-        json.users.forEach(nu => {
-          const existing = users.find(u => u.login.toLowerCase() === nu.login.toLowerCase());
-          if (existing) {
-            if (existing.pass !== nu.pass || existing.role !== nu.role || existing.prenom !== nu.prenom) {
-              Object.assign(existing, { prenom: nu.prenom, pass: nu.pass, role: nu.role });
-              changed = true;
-            }
-          } else {
-            nu.id = nextUserId++;
-            users.push(nu);
-            changed = true;
-          }
-        });
-        if (changed) { save(); toast('Nouveaux accès chargés depuis Sheets ✓', 'ok'); }
-      }
-    } catch(e) { /* silencieux */ }
-
-    // --- 2. Historique (superviseur/admin uniquement) ---
-    if (currentUser && (currentUser.role === 'supervisor' || currentUser.role === 'admin')) {
-      syncHistoriqueFromSheets(false);
-    }
+    try { /* getConfig comme avant */ } catch(e) {}
+    syncHistoriqueFromSheets(false);   // ← plus de condition rôle
   }, 15000);
 }
+
 
 // ─── SYNC HISTORIQUE DEPUIS SHEETS ───────────────────────────────────────────
 async function syncHistoriqueFromSheets(isInitial = false) {
@@ -1058,7 +1027,7 @@ function getFiltered() {
     const mm   = iso.slice(5,7);
     // Agents : uniquement leurs propres saisies locales
     // Superviseur/admin : toutes les entrées du Sheet (agentId === -1)
-    if (isAgent && e.agentId !== currentUser.id) return false;
+if (isAgent && (e.agent || '').toLowerCase() !== currentUser.prenom.toLowerCase()) return false;
     if (q     && !(e.nom||'').toLowerCase().includes(q) && !String(e.tel||'').includes(q) && !(e.agent||'').toLowerCase().includes(q)) return false;
     if (rm    && e.runmay !== rm)    return false;
     if (mo    && e.motif  !== mo)    return false;
@@ -1150,40 +1119,27 @@ async function saveEntry() {
   const hh = String(now.getHours()).padStart(2,'0');
   const mi = String(now.getMinutes()).padStart(2,'0');
   const date = `${d}/${m}/${y} ${hh}:${mi}`;
-  const entry = { id: nextEntryId++, date, nom, tel, motif, runmay, montant, agent: currentUser.prenom, agentId: currentUser.id };
-  entries.push(entry);
-  save(); closeModals(); populateAgentFilter(); applyFilters();
+    if (!scriptUrl) { toast('Configurez d\'abord l\'URL Apps Script.', 'err'); return; }
 
-  // Envoi immédiat vers Google Sheets — colonnes exactes du Sheet
-  if (scriptUrl) {
-    setSyncStatus('syncing');
-    try {
-      const json = await gsCallPost({
-        action             : 'addEntry',
-        DATE               : date,
-        NOM_PRENOM_CLIENT  : nom,
-        NUMERO             : tel,
-        MOTIF              : motif,
-        ZONE               : runmay,
-        MONTANT            : montant.toFixed(2),
-        CSA                : currentUser.prenom
-      });
-      if (json.success) {
-        setSyncStatus('ok');
-        toast('Enregistré + envoyé vers Sheets ✓', 'ok');
-        setTimeout(() => setSyncStatus('idle'), 3000);
-      } else {
-        setSyncStatus('err');
-        toast('Sauvegardé localement. Sheets : ' + (json.error || 'erreur'), 'err');
-        setTimeout(() => setSyncStatus('idle'), 5000);
-      }
-    } catch(e) {
-      setSyncStatus('err');
-      toast('Sauvegardé localement. Sheets inaccessible.', 'err');
-      setTimeout(() => setSyncStatus('idle'), 5000);
+  if (!scriptUrl) { toast('Configurez d\'abord l\'URL Apps Script.', 'err'); return; }
+
+  setSyncStatus('syncing');
+  closeModals();
+  try {
+    const json = await gsCallPost({
+      action: 'addEntry',
+      DATE: date, NOM_PRENOM_CLIENT: nom, NUMERO: tel,
+      MOTIF: motif, ZONE: runmay,
+      MONTANT: montant.toFixed(2), CSA: currentUser.prenom
+    });
+    if (json.success) {
+      toast('Enregistré dans Sheets ✓', 'ok');
+      await syncHistoriqueFromSheets(true);
+    } else {
+      toast('Erreur Sheets : ' + (json.error || 'inconnue'), 'err');
     }
-  } else {
-    toast('Entrée enregistrée ✓', 'ok');
+  } catch(e) {
+    toast('Sheets inaccessible — entrée NON enregistrée.', 'err');
   }
 }
 
