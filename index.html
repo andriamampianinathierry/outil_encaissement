@@ -677,7 +677,7 @@ let entries = lsGet('enc_entries', null) || [
 ];
 
 let sheetUrl  = lsRaw('enc_sheet_url', 'https://docs.google.com/spreadsheets/d/1vl_GAw7aQAW6tNx0fgWs1cj4Ym-ecxX-X8XQE8lxLpA/edit');
-let scriptUrl = lsRaw('enc_script_url', 'https://script.google.com/macros/s/AKfycbz1_zmxksc6tCd5fkOlK9Hu9yqQv8OBsUpq26TvKFskra_7ssdE73qqsESSDgTtBGoVQw/exec');
+let scriptUrl = lsRaw('enc_script_url', 'https://script.google.com/macros/s/AKfycby1JcilaO94Ke3DPNXpIezvFEjuof_ObBAAOaDtr3xqL7wJa9TzjFJ-oOSQLrCoeRvJ5w/exec');
 // Pré-remplir si jamais le localStorage est vide
 if (!localStorage.getItem('enc_script_url')) localStorage.setItem('enc_script_url', scriptUrl);
 if (!localStorage.getItem('enc_sheet_url'))  localStorage.setItem('enc_sheet_url', sheetUrl);
@@ -950,7 +950,8 @@ function stopAutoSync() {
 
 async function silentLoadConfig() {
   try {
-    const json = await gsCall({ action: 'getConfig' });
+    const res  = await fetch(scriptUrl + '?action=getConfig');
+    const json = await res.json();
     if (json.success && Array.isArray(json.users) && json.users.length > 0) {
       json.users.forEach(nu => {
         const existing = users.find(u => u.login === nu.login);
@@ -1311,49 +1312,42 @@ function renderCredentials() {
 
 
 // ─── FETCH HELPERS ────────────────────────────────────────────────────────────
-// GET : JSONP pour contourner la redirection 302 CORS de Google Apps Script
-// (fetch + redirect:'follow' fonctionne en local mais est bloqué sur GitHub Pages)
+// GET : uniquement pour les lectures (getConfig, getHistorique)
+// ─── XHR HELPER (contourne les blocages CORS de Google Apps Script) ───────────
+// GET : lectures seules (getConfig, getHistorique)
 function gsCall(params) {
-  return new Promise((resolve, reject) => {
-    const cbName = '__cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    const timer = setTimeout(() => {
-      gsCleanup(cbName);
-      reject(new Error('Timeout'));
-    }, 12000);
-
-    window[cbName] = (data) => {
-      clearTimeout(timer);
-      gsCleanup(cbName);
-      if (data && data.error) reject(new Error(data.error));
-      else resolve(data);
+  return new Promise(function(resolve, reject) {
+    var url = scriptUrl + '?' + Object.entries(Object.assign({}, params, {ts: Date.now()}))
+      .map(function(kv) {
+        var v = typeof kv[1] === 'object' ? JSON.stringify(kv[1]) : kv[1];
+        return encodeURIComponent(kv[0]) + '=' + encodeURIComponent(v);
+      }).join('&');
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.onload = function() {
+      try { resolve(JSON.parse(xhr.responseText)); }
+      catch(e) { reject(new Error('Réponse invalide : ' + xhr.responseText)); }
     };
-
-    const qs = Object.entries({ ...params, callback: cbName, ts: Date.now() })
-      .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(typeof v === 'object' ? JSON.stringify(v) : v))
-      .join('&');
-
-    const s = document.createElement('script');
-    s.src = scriptUrl + '?' + qs;
-    s.onerror = () => { clearTimeout(timer); gsCleanup(cbName); reject(new Error('Réseau')); };
-    document.head.appendChild(s);
+    xhr.onerror = function() { reject(new Error('Erreur réseau XHR GET')); };
+    xhr.send();
   });
 }
-function gsCleanup(cb) {
-  delete window[cb];
-  document.querySelectorAll('script[src*="script.google.com"]').forEach(e => e.remove());
-}
 
-// POST : pour toutes les écritures (addEntry, writeHistorique, writeConfig)
-// Content-Type text/plain évite le preflight CORS OPTIONS bloqué par Google
-async function gsCallPost(params) {
-  const res = await fetch(scriptUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(params),
-    redirect: 'follow',
+// POST : écritures (addEntry, writeHistorique, writeConfig)
+// text/plain évite le preflight CORS OPTIONS bloqué par Google
+// Le GAS lit e.postData.contents directement comme JSON
+function gsCallPost(params) {
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', scriptUrl, true);
+    xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
+    xhr.onload = function() {
+      try { resolve(JSON.parse(xhr.responseText)); }
+      catch(e) { reject(new Error('Réponse invalide : ' + xhr.responseText)); }
+    };
+    xhr.onerror = function() { reject(new Error('Erreur réseau XHR POST')); };
+    xhr.send(JSON.stringify(params));
   });
-  const text = await res.text();
-  return JSON.parse(text);
 }
 
 // ─── SYNC SHEETS ──────────────────────────────────────────────────────────────
